@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VOCABO — Học từ vựng</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" href="favicon.png">
+  <style>
+    .topics-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px,1fr)); gap: 16px; }
+    .learn-wrap  { max-width: 580px; margin: 0 auto; }
+    .controls    { display: flex; gap: 12px; justify-content: center; margin-top: 24px; flex-wrap: wrap; }
+    .example-box { background: var(--primary-light); border-radius: 12px; padding: 16px; margin-top: 16px; border-left: 4px solid var(--primary); }
+    .tab-bar     { display: flex; gap: 4px; background: #f3f4f6; border-radius: 12px; padding: 4px; margin-bottom: 24px; }
+    .tab-btn     { flex:1; padding:10px; border:none; background:transparent; border-radius:10px; font-size:14px; font-weight:600; cursor:pointer; transition:all .2s; color:var(--text-muted); }
+    .tab-btn.active { background:#fff; color:var(--primary); box-shadow:0 2px 8px rgba(0,0,0,.08); }
+    .seed-progress { background: var(--primary-light); border-radius: 12px; padding: 20px; text-align: center; }
+  </style>
+</head>
+<body>
+  <nav class="navbar">
+    <a href="dashboard.html" class="navbar-brand"><div class="logo">📖</div><span>VOCABO</span></a>
+    <div class="navbar-nav">
+      <a href="flashcard.html" class="nav-link active"><span>📚</span><span>Học</span></a>
+      <a href="review.html"    class="nav-link"><span>🔁</span><span>Ôn tập</span></a>
+      <a href="test.html"      class="nav-link"><span>📝</span><span>Kiểm tra</span></a>
+      <a href="calendar.html"  class="nav-link"><span>📅</span><span>Lịch</span></a>
+    </div>
+    <div class="nav-user" id="nav-user" onclick="window.location.href='profile.html'"></div>
+  </nav>
+
+  <div class="layout">
+    <aside class="sidebar">
+      <a href="dashboard.html" class="sidebar-item"><span>🏠</span> Trang chủ</a>
+      <a href="flashcard.html" class="sidebar-item active"><span>📚</span> Học từ vựng</a>
+      <a href="review.html"    class="sidebar-item"><span>🔁</span> Ôn tập</a>
+      <a href="test.html"      class="sidebar-item"><span>📝</span> Kiểm tra</a>
+      <a href="grammar.html"   class="sidebar-item"><span>📖</span> Ngữ pháp</a>
+      <a href="calendar.html"  class="sidebar-item"><span>📅</span> Lịch học</a>
+      <a href="search.html"    class="sidebar-item"><span>🔍</span> Tra từ</a>
+    </aside>
+
+    <main class="main-content">
+      <!-- Topic view -->
+      <div id="topic-view">
+        <h2 class="mb-24">📚 Học từ vựng</h2>
+        <div class="tab-bar">
+          <button class="tab-btn active" id="tab-preset" onclick="switchTab('preset')">Chủ đề có sẵn</button>
+          <button class="tab-btn" id="tab-custom" onclick="switchTab('custom')">Của tôi</button>
+        </div>
+        <div id="preset-view">
+          <div class="topics-grid" id="preset-grid"></div>
+        </div>
+        <div id="custom-view" class="hidden">
+          <div class="card mb-16">
+            <h3 class="mb-16">➕ Tạo chủ đề mới</h3>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+              <input type="text" id="new-name" class="form-control" placeholder="Tên chủ đề (EN)">
+              <input type="text" id="new-vi"   class="form-control" placeholder="Tên tiếng Việt">
+            </div>
+            <button class="btn btn-primary" onclick="createTopic()">Tạo chủ đề</button>
+          </div>
+          <div class="topics-grid" id="custom-grid"></div>
+        </div>
+      </div>
+
+      <!-- Seeding progress -->
+      <div id="seed-view" class="hidden">
+        <div class="seed-progress">
+          <div style="font-size:2rem;margin-bottom:12px">⏳</div>
+          <h3>Đang tải từ vựng...</h3>
+          <p class="text-muted text-sm mt-8">Lần đầu mất khoảng 20-30 giây</p>
+          <div class="progress mt-16"><div class="progress-bar" id="seed-bar" style="width:0%"></div></div>
+          <div class="text-sm mt-8" id="seed-status">0 / 20 từ</div>
+        </div>
+      </div>
+
+      <!-- Learn view -->
+      <div id="learn-view" class="hidden">
+        <div class="flex items-center gap-12 mb-16">
+          <button class="btn btn-outline btn-sm" onclick="backToTopics()">← Quay lại</button>
+          <h2 id="learn-title">Học từ vựng</h2>
+        </div>
+        <div class="learn-wrap">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+            <span class="text-sm text-muted" id="word-counter">1 / 20</span>
+            <span class="chip" id="learned-count">✓ 0 đã nhớ</span>
+          </div>
+          <div class="progress mb-20"><div class="progress-bar" id="learn-bar" style="width:5%"></div></div>
+
+          <div class="flashcard-scene" onclick="flipCard()">
+            <div class="flashcard" id="flashcard">
+              <div class="flashcard-face flashcard-front">
+                <div class="flashcard-word" id="fc-word">...</div>
+                <div class="flashcard-phonetic" id="fc-phonetic"></div>
+                <div class="flashcard-hint">Nhấn để xem nghĩa</div>
+              </div>
+              <div class="flashcard-face flashcard-back">
+                <div style="font-size:.9rem;opacity:.7;margin-bottom:8px">Nghĩa tiếng Việt</div>
+                <div class="flashcard-meaning" id="fc-meaning">...</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="example-box" id="example-box" style="display:none">
+            <div style="font-size:13px;font-weight:600;color:var(--primary);margin-bottom:6px">Ví dụ</div>
+            <div id="fc-example" style="font-size:14px;font-weight:500"></div>
+            <div id="fc-example-vi" style="font-size:13px;color:var(--text-muted);margin-top:4px"></div>
+          </div>
+
+          <div class="controls">
+            <button class="btn btn-outline" onclick="prevWord()" id="btn-prev">← Trước</button>
+            <button class="btn btn-primary" onclick="markLearned()">✓ Đã nhớ</button>
+            <button class="btn btn-outline" onclick="nextWord()" id="btn-next">Tiếp →</button>
+          </div>
+          <div class="text-center mt-16">
+            <button class="btn btn-outline btn-sm" onclick="speakWord()">🔊 Phát âm</button>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script type="module">
+    import { requireAuth, getUserData } from "./js/auth.js";
+    import { db } from "./js/firebase-config.js";
+    import { PRESET_TOPICS, seedWords, markWordLearned, fetchWordData } from "./js/flashcard.js";
+    import { collection, query, where, getDocs, addDoc, doc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+    import { renderNavUser, showToast, showLoading, hideLoading } from "./js/utils.js";
+
+    const user     = await requireAuth();
+    const userData = await getUserData(user.uid);
+    renderNavUser(user, userData);
+
+    let words = [], idx = 0, learnedCount = 0, isFlipped = false;
+    let topicId = "", topicName = "", topicNameVi = "", topicEmoji = "", topicColor = "#667eea";
+
+    // ── Render preset topics ───────────────────────────────────────────────────
+    const presetGrid = document.getElementById("preset-grid");
+    PRESET_TOPICS.forEach(t => {
+      const card = document.createElement("div");
+      card.className = "topic-card";
+      card.style.background = `linear-gradient(135deg,${t.color}dd,${t.color}88)`;
+      card.innerHTML = `<span class="topic-count">${t.words.length} từ</span>
+        <div class="topic-emoji">${t.emoji}</div>
+        <div class="topic-name">${t.name}</div>
+        <div style="font-size:12px;opacity:.8">${t.nameVi}</div>`;
+      card.onclick = () => openPreset(t);
+      presetGrid.appendChild(card);
+    });
+
+    // ── Open preset topic ──────────────────────────────────────────────────────
+    async function openPreset(t) {
+      showLoading();
+      const existing = await getDocs(query(collection(db,"topics"),
+        where("uid","==",user.uid), where("name","==",t.name), where("isPreset","==",true)));
+
+      let tid;
+      if (!existing.empty) {
+        tid = existing.docs[0].id;
+        const ws = await getDocs(collection(db,"topics",tid,"words"));
+        words = ws.docs.map(d => ({ id: d.id, ...d.data() }));
+        hideLoading();
+      } else {
+        hideLoading();
+        // Show seed progress
+        document.getElementById("topic-view").classList.add("hidden");
+        document.getElementById("seed-view").classList.remove("hidden");
+        const ref = await addDoc(collection(db,"topics"), {
+          uid: user.uid, name: t.name, nameVi: t.nameVi, emoji: t.emoji,
+          color: t.color, wordCount: 0, isPreset: true, createdAt: serverTimestamp()
+        });
+        tid = ref.id;
+        words = [];
+        for (let i = 0; i < t.words.length; i += 3) {
+          const batch = t.words.slice(i, i+3);
+          const items = await Promise.all(batch.map(w => fetchWordData(w)));
+          for (const item of items) {
+            const dr = await addDoc(collection(db,"topics",tid,"words"), { ...item, createdAt: serverTimestamp() });
+            words.push({ id: dr.id, ...item });
+          }
+          const pct = Math.round((words.length / t.words.length) * 100);
+          document.getElementById("seed-bar").style.width = pct + "%";
+          document.getElementById("seed-status").textContent = `${words.length} / ${t.words.length} từ`;
+        }
+        await updateDoc(doc(db,"topics",tid), { wordCount: words.length });
+        document.getElementById("seed-view").classList.add("hidden");
+      }
+
+      topicId = tid; topicName = t.name; topicNameVi = t.nameVi;
+      topicEmoji = t.emoji; topicColor = t.color;
+      startLearn(t.name, t.emoji);
+    }
+
+    // ── Custom topics ──────────────────────────────────────────────────────────
+    async function loadCustom() {
+      const snap = await getDocs(query(collection(db,"topics"),
+        where("uid","==",user.uid), where("isPreset","==",false)));
+      const grid = document.getElementById("custom-grid");
+      if (snap.empty) {
+        grid.innerHTML = `<p class="text-muted text-sm" style="grid-column:1/-1;padding:20px;text-align:center">Chưa có chủ đề nào</p>`;
+        return;
+      }
+      grid.innerHTML = "";
+      snap.forEach(d => {
+        const t = d.data();
+        const card = document.createElement("div");
+        card.className = "topic-card";
+        card.style.background = `linear-gradient(135deg,${t.color||"#667eea"}dd,${t.color||"#764ba2"}88)`;
+        card.innerHTML = `<span class="topic-count">${t.wordCount||0} từ</span>
+          <div class="topic-emoji">${t.emoji||"📚"}</div>
+          <div class="topic-name">${t.name}</div>
+          <div style="font-size:12px;opacity:.8">${t.nameVi||""}</div>`;
+        card.onclick = async () => {
+          showLoading();
+          const ws = await getDocs(collection(db,"topics",d.id,"words"));
+          words = ws.docs.map(w => ({ id: w.id, ...w.data() }));
+          topicId = d.id; topicName = t.name; topicNameVi = t.nameVi||"";
+          topicEmoji = t.emoji||"📚"; topicColor = t.color||"#667eea";
+          hideLoading();
+          startLearn(t.name, t.emoji||"📚");
+        };
+        grid.appendChild(card);
+      });
+    }
+
+    window.createTopic = async () => {
+      const name = document.getElementById("new-name").value.trim();
+      const vi   = document.getElementById("new-vi").value.trim();
+      if (!name) { showToast("Nhập tên chủ đề!", "warning"); return; }
+      await addDoc(collection(db,"topics"), {
+        uid: user.uid, name, nameVi: vi, emoji: "📚",
+        color: "#667eea", wordCount: 0, isPreset: false, createdAt: serverTimestamp()
+      });
+      document.getElementById("new-name").value = "";
+      document.getElementById("new-vi").value   = "";
+      showToast("Đã tạo chủ đề!", "success");
+      loadCustom();
+    };
+
+    window.switchTab = (tab) => {
+      document.getElementById("preset-view").classList.toggle("hidden", tab !== "preset");
+      document.getElementById("custom-view").classList.toggle("hidden", tab !== "custom");
+      document.getElementById("tab-preset").classList.toggle("active", tab === "preset");
+      document.getElementById("tab-custom").classList.toggle("active", tab === "custom");
+      if (tab === "custom") loadCustom();
+    };
+
+    // ── Learn ──────────────────────────────────────────────────────────────────
+    function startLearn(name, emoji) {
+      idx = 0; learnedCount = 0; isFlipped = false;
+      document.getElementById("topic-view").classList.add("hidden");
+      document.getElementById("learn-view").classList.remove("hidden");
+      document.getElementById("learn-title").textContent = `${emoji} ${name}`;
+      renderCard();
+    }
+
+    function renderCard() {
+      if (!words.length) return;
+      const w = words[idx];
+      document.getElementById("fc-word").textContent     = w.word || "";
+      document.getElementById("fc-phonetic").textContent = w.phonetic || "";
+      document.getElementById("fc-meaning").textContent  = w.meaning || "";
+      document.getElementById("word-counter").textContent = `${idx+1} / ${words.length}`;
+      document.getElementById("learned-count").textContent = `✓ ${learnedCount} đã nhớ`;
+      document.getElementById("learn-bar").style.width = `${((idx+1)/words.length)*100}%`;
+      document.getElementById("btn-prev").disabled = idx === 0;
+      document.getElementById("btn-next").disabled = idx === words.length - 1;
+
+      const ex = w.example || "";
+      const exBox = document.getElementById("example-box");
+      if (ex) {
+        document.getElementById("fc-example").textContent    = ex;
+        document.getElementById("fc-example-vi").textContent = w.exampleVi || "";
+        exBox.style.display = "block";
+      } else {
+        exBox.style.display = "none";
+      }
+
+      // Reset flip
+      const fc = document.getElementById("flashcard");
+      fc.classList.remove("flipped");
+      isFlipped = false;
+    }
+
+    window.flipCard = () => {
+      const fc = document.getElementById("flashcard");
+      fc.classList.toggle("flipped");
+      isFlipped = !isFlipped;
+    };
+
+    window.nextWord = () => { if (idx < words.length-1) { idx++; renderCard(); } };
+    window.prevWord = () => { if (idx > 0) { idx--; renderCard(); } };
+
+    window.markLearned = async () => {
+      const w = words[idx];
+      try {
+        await markWordLearned(user.uid, w, topicId, topicName, topicNameVi, topicEmoji, topicColor);
+        learnedCount++;
+        showToast(`✅ Đã ghi nhớ "${w.word}"`, "success", 1500);
+        if (idx < words.length - 1) { idx++; renderCard(); }
+        else showToast("🎉 Hoàn thành chủ đề!", "success");
+      } catch (e) {
+        showToast("Lỗi lưu dữ liệu", "error");
+      }
+    };
+
+    window.speakWord = () => {
+      const w = words[idx]?.word;
+      if (w && window.speechSynthesis) {
+        const utt = new SpeechSynthesisUtterance(w);
+        utt.lang = "en-US"; utt.rate = 0.8;
+        speechSynthesis.speak(utt);
+      }
+    };
+
+    window.backToTopics = () => {
+      document.getElementById("learn-view").classList.add("hidden");
+      document.getElementById("topic-view").classList.remove("hidden");
+    };
+  </script>
+</body>
+</html>

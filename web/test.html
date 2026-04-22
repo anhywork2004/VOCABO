@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VOCABO — Kiểm tra</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" href="favicon.png">
+  <style>
+    .quiz-wrap { max-width: 600px; margin: 0 auto; }
+    .quiz-prompt { background: var(--surface); border-radius: var(--radius); padding: 32px; text-align: center; box-shadow: var(--shadow); margin-bottom: 24px; }
+    .quiz-question { font-size: 2rem; font-weight: 800; margin-bottom: 8px; }
+    .options-grid { display: flex; flex-direction: column; gap: 12px; }
+    .result-ring { width: 120px; height: 120px; position: relative; margin: 0 auto 20px; }
+    .result-ring svg { transform: rotate(-90deg); }
+    .result-ring .ring-text { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 800; }
+    .tab-bar { display: flex; gap: 4px; background: #f3f4f6; border-radius: 12px; padding: 4px; margin-bottom: 24px; max-width: 400px; }
+    .tab-btn { flex:1; padding:10px; border:none; background:transparent; border-radius:10px; font-size:14px; font-weight:600; cursor:pointer; color:var(--text-muted); }
+    .tab-btn.active { background:#fff; color:var(--primary); box-shadow:0 2px 8px rgba(0,0,0,.08); }
+  </style>
+</head>
+<body>
+  <nav class="navbar">
+    <a href="dashboard.html" class="navbar-brand"><div class="logo">📖</div><span>VOCABO</span></a>
+    <div class="navbar-nav">
+      <a href="flashcard.html" class="nav-link"><span>📚</span><span>Học</span></a>
+      <a href="review.html"    class="nav-link"><span>🔁</span><span>Ôn tập</span></a>
+      <a href="test.html"      class="nav-link active"><span>📝</span><span>Kiểm tra</span></a>
+      <a href="calendar.html"  class="nav-link"><span>📅</span><span>Lịch</span></a>
+    </div>
+    <div class="nav-user" id="nav-user"></div>
+  </nav>
+  <div class="layout">
+    <aside class="sidebar">
+      <a href="dashboard.html" class="sidebar-item"><span>🏠</span> Trang chủ</a>
+      <a href="flashcard.html" class="sidebar-item"><span>📚</span> Học từ vựng</a>
+      <a href="review.html"    class="sidebar-item"><span>🔁</span> Ôn tập</a>
+      <a href="test.html"      class="sidebar-item active"><span>📝</span> Kiểm tra</a>
+      <a href="grammar.html"   class="sidebar-item"><span>📖</span> Ngữ pháp</a>
+      <a href="calendar.html"  class="sidebar-item"><span>📅</span> Lịch học</a>
+      <a href="search.html"    class="sidebar-item"><span>🔍</span> Tra từ</a>
+    </aside>
+    <main class="main-content">
+      <!-- Start -->
+      <div id="start-view">
+        <h2 class="mb-8">📝 Kiểm tra từ vựng</h2>
+        <p class="text-muted text-sm mb-24">Trắc nghiệm 4 đáp án</p>
+        <div class="tab-bar">
+          <button class="tab-btn active" id="tab-my"    onclick="switchMode('my')">Từ của tôi</button>
+          <button class="tab-btn"        id="tab-ielts" onclick="switchMode('ielts')">IELTS</button>
+        </div>
+        <div class="card" style="max-width:400px">
+          <div style="font-size:3rem;text-align:center;margin-bottom:16px" id="mode-icon">📚</div>
+          <h3 class="text-center mb-8" id="mode-title">Từ vựng của tôi</h3>
+          <p class="text-muted text-sm text-center mb-24" id="mode-desc">Kiểm tra các từ bạn đã học</p>
+          <div class="form-group">
+            <label class="form-label">Số câu hỏi</label>
+            <select id="q-count" class="form-control">
+              <option value="10">10 câu</option>
+              <option value="20" selected>20 câu</option>
+              <option value="30">30 câu</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Chế độ</label>
+            <select id="q-mode" class="form-control">
+              <option value="wm">Từ → Nghĩa</option>
+              <option value="mw">Nghĩa → Từ</option>
+            </select>
+          </div>
+          <button class="btn btn-primary btn-block btn-lg" onclick="startTest()">Bắt đầu</button>
+        </div>
+      </div>
+      <!-- Quiz -->
+      <div id="quiz-view" class="hidden">
+        <div class="quiz-wrap">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+            <span class="text-sm text-muted" id="q-counter">Câu 1/20</span>
+            <span class="chip">🏆 <span id="q-score">0</span></span>
+          </div>
+          <div class="progress mb-20"><div class="progress-bar" id="q-bar" style="width:5%"></div></div>
+          <div class="quiz-prompt">
+            <div class="text-muted text-sm mb-8" id="q-sub">Từ này có nghĩa là gì?</div>
+            <div class="quiz-question" id="q-question">...</div>
+            <div class="text-muted text-sm mt-8" id="q-phonetic"></div>
+          </div>
+          <div class="options-grid" id="options-grid"></div>
+          <div class="text-center mt-20 hidden" id="next-wrap">
+            <button class="btn btn-primary" onclick="nextQ()">Câu tiếp →</button>
+          </div>
+        </div>
+      </div>
+      <!-- Result -->
+      <div id="result-view" class="hidden">
+        <div class="card text-center" style="max-width:520px;margin:0 auto">
+          <div id="res-emoji" style="font-size:3.5rem;margin-bottom:12px">🏆</div>
+          <h2 id="res-msg" class="mb-8">Xuất sắc!</h2>
+          <p class="text-muted text-sm mb-24" id="res-sub"></p>
+          <div class="result-ring">
+            <svg width="120" height="120" viewBox="0 0 120 120">
+              <circle cx="60" cy="60" r="50" fill="none" stroke="#e5e7eb" stroke-width="10"/>
+              <circle cx="60" cy="60" r="50" fill="none" stroke="var(--primary)" stroke-width="10"
+                stroke-dasharray="314" id="res-circle" stroke-dashoffset="314" stroke-linecap="round"/>
+            </svg>
+            <div class="ring-text" id="res-pct">0%</div>
+          </div>
+          <div class="grid-3 mb-24">
+            <div class="stat-card"><div class="stat-value" style="color:var(--success)" id="res-correct">0</div><div class="stat-label">Đúng</div></div>
+            <div class="stat-card"><div class="stat-value" style="color:var(--danger)"  id="res-wrong">0</div><div class="stat-label">Sai</div></div>
+            <div class="stat-card"><div class="stat-value" id="res-total">0</div><div class="stat-label">Tổng</div></div>
+          </div>
+          <div id="mistakes-wrap" class="hidden" style="text-align:left;margin-bottom:20px">
+            <h3 class="mb-12">❌ Câu sai</h3>
+            <div id="mistakes-list"></div>
+          </div>
+          <div style="display:flex;gap:12px;justify-content:center">
+            <button class="btn btn-outline" onclick="backToStart()">Về trang chủ</button>
+            <button class="btn btn-primary" onclick="retryTest()">🔄 Làm lại</button>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+  <script type="module">
+    import { requireAuth, getUserData } from "./js/auth.js";
+    import { db } from "./js/firebase-config.js";
+    import { collection, getDocs, doc, updateDoc, setDoc, increment, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+    import { renderNavUser, showToast, shuffle } from "./js/utils.js";
+
+    const user = await requireAuth();
+    const userData = await getUserData(user.uid);
+    renderNavUser(user, userData);
+
+    let questions = [], qIdx = 0, score = 0, mistakes = [], answered = false, testMode = "my";
+
+    window.switchMode = (m) => {
+      testMode = m;
+      document.getElementById("tab-my").classList.toggle("active", m==="my");
+      document.getElementById("tab-ielts").classList.toggle("active", m==="ielts");
+      const info = m==="my"
+        ? {icon:"📚",title:"Từ vựng của tôi",desc:"Kiểm tra các từ bạn đã học"}
+        : {icon:"🎓",title:"IELTS Academic",desc:"200+ từ IELTS Academic Word List"};
+      document.getElementById("mode-icon").textContent  = info.icon;
+      document.getElementById("mode-title").textContent = info.title;
+      document.getElementById("mode-desc").textContent  = info.desc;
+    };
+
+    window.startTest = async () => {
+      const count = parseInt(document.getElementById("q-count").value);
+      const mode  = document.getElementById("q-mode").value;
+      let pool = [];
+      if (testMode === "my") {
+        const snap = await getDocs(collection(db,"users",user.uid,"learned_words"));
+        pool = snap.docs.map(d=>d.data()).filter(w=>w.word&&w.meaning);
+      } else {
+        const snap = await getDocs(collection(db,"ielts_questions"));
+        pool = snap.docs.map(d=>d.data()).filter(w=>w.word&&w.meaning);
+      }
+      if (pool.length < 4) { showToast("Cần ít nhất 4 từ để kiểm tra!","warning"); return; }
+      pool = shuffle(pool).slice(0, Math.min(count, pool.length));
+      questions = pool.map(correct => {
+        const dist = shuffle(pool.filter(w=>w.word!==correct.word)).slice(0,3);
+        const choices = shuffle([correct,...dist]);
+        return { correct, choices, correctIdx: choices.indexOf(correct), mode, userAnswer: -1 };
+      });
+      qIdx=0; score=0; mistakes=[];
+      document.getElementById("start-view").classList.add("hidden");
+      document.getElementById("quiz-view").classList.remove("hidden");
+      renderQ();
+    };
+
+    function renderQ() {
+      const q = questions[qIdx];
+      answered = false;
+      document.getElementById("q-counter").textContent = `Câu ${qIdx+1}/${questions.length}`;
+      document.getElementById("q-score").textContent   = score;
+      document.getElementById("q-bar").style.width     = `${((qIdx+1)/questions.length)*100}%`;
+      document.getElementById("next-wrap").classList.add("hidden");
+      if (q.mode==="wm") {
+        document.getElementById("q-sub").textContent      = "Từ này có nghĩa là gì?";
+        document.getElementById("q-question").textContent = q.correct.word;
+        document.getElementById("q-phonetic").textContent = q.correct.phonetic||"";
+      } else {
+        document.getElementById("q-sub").textContent      = "Từ tiếng Anh nào có nghĩa này?";
+        document.getElementById("q-question").textContent = q.correct.meaning;
+        document.getElementById("q-phonetic").textContent = "";
+      }
+      const letters = ["A","B","C","D"];
+      const grid = document.getElementById("options-grid");
+      grid.innerHTML = "";
+      q.choices.forEach((c,i) => {
+        const label = q.mode==="wm" ? c.meaning : c.word;
+        const btn = document.createElement("div");
+        btn.className = "quiz-option";
+        btn.innerHTML = `<div class="option-letter">${letters[i]}</div><span>${label}</span>`;
+        btn.onclick = () => selectAns(i);
+        grid.appendChild(btn);
+      });
+    }
+
+    function selectAns(i) {
+      if (answered) return;
+      answered = true;
+      const q = questions[qIdx];
+      q.userAnswer = i;
+      const correct = i === q.correctIdx;
+      const opts = document.querySelectorAll(".quiz-option");
+      opts.forEach((o,j) => {
+        o.classList.add("disabled");
+        if (j===q.correctIdx) o.classList.add("correct");
+        else if (j===i && !correct) o.classList.add("wrong");
+      });
+      if (correct) { score++; document.getElementById("q-score").textContent = score; }
+      else mistakes.push(q);
+      document.getElementById("next-wrap").classList.remove("hidden");
+    }
+
+    window.nextQ = () => {
+      qIdx++;
+      if (qIdx >= questions.length) showResult();
+      else renderQ();
+    };
+
+    async function showResult() {
+      document.getElementById("quiz-view").classList.add("hidden");
+      document.getElementById("result-view").classList.remove("hidden");
+      const pct = Math.round((score/questions.length)*100);
+      document.getElementById("res-pct").textContent     = pct+"%";
+      document.getElementById("res-correct").textContent = score;
+      document.getElementById("res-wrong").textContent   = questions.length-score;
+      document.getElementById("res-total").textContent   = questions.length;
+      const emoji = pct>=80?"🏆":pct>=60?"👍":"💪";
+      const msg   = pct>=80?"Xuất sắc!":pct>=60?"Tốt lắm!":"Cố gắng thêm!";
+      document.getElementById("res-emoji").textContent = emoji;
+      document.getElementById("res-msg").textContent   = msg;
+      document.getElementById("res-sub").textContent   = `${score}/${questions.length} câu đúng (${pct}%)`;
+      setTimeout(() => {
+        const offset = 314 - (pct/100)*314;
+        document.getElementById("res-circle").style.transition = "stroke-dashoffset 1s ease";
+        document.getElementById("res-circle").style.strokeDashoffset = offset;
+      }, 100);
+      if (mistakes.length) {
+        document.getElementById("mistakes-wrap").classList.remove("hidden");
+        document.getElementById("mistakes-list").innerHTML = mistakes.map(q =>
+          `<div style="padding:12px 16px;background:#fef2f2;border-radius:10px;border-left:4px solid var(--danger);margin-bottom:8px">
+            <div style="font-weight:700">${q.correct.word}</div>
+            <div style="font-size:13px;color:var(--text-muted)">Đúng: ${q.correct.meaning}</div>
+          </div>`).join("");
+      }
+      // Save score
+      try {
+        await updateDoc(doc(db,"users",user.uid), {
+          lastTestScore: pct, totalTests: increment(1), lastTestDate: serverTimestamp()
+        });
+      } catch(_) {}
+    }
+
+    window.retryTest = () => {
+      questions = shuffle(questions).map(q => ({ ...q, userAnswer: -1 }));
+      qIdx=0; score=0; mistakes=[];
+      document.getElementById("result-view").classList.add("hidden");
+      document.getElementById("quiz-view").classList.remove("hidden");
+      renderQ();
+    };
+
+    window.backToStart = () => {
+      document.getElementById("result-view").classList.add("hidden");
+      document.getElementById("quiz-view").classList.add("hidden");
+      document.getElementById("start-view").classList.remove("hidden");
+    };
+  </script>
+</body>
+</html>

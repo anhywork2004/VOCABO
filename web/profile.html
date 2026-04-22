@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VOCABO — Hồ sơ</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" href="favicon.png">
+  <style>
+    .profile-hero { background: var(--gradient); border-radius: 20px; padding: 32px; color: #fff; text-align: center; margin-bottom: 24px; }
+    .profile-avatar { width: 96px; height: 96px; border-radius: 50%; border: 4px solid rgba(255,255,255,.4); margin: 0 auto 16px; overflow: hidden; background: rgba(255,255,255,.2); display: flex; align-items: center; justify-content: center; font-size: 40px; font-weight: 800; }
+    .profile-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .level-select { display: flex; gap: 8px; flex-wrap: wrap; }
+    .level-opt { padding: 8px 16px; border-radius: 10px; border: 2px solid var(--border); cursor: pointer; font-size: 13px; font-weight: 600; transition: all .2s; }
+    .level-opt.selected { border-color: var(--primary); background: var(--primary-light); color: var(--primary); }
+    .goal-opt { padding: 10px 16px; border-radius: 10px; border: 2px solid var(--border); cursor: pointer; font-size: 13px; font-weight: 600; transition: all .2s; }
+    .goal-opt.selected { border-color: var(--primary); background: var(--primary-light); color: var(--primary); }
+  </style>
+</head>
+<body>
+  <nav class="navbar">
+    <a href="dashboard.html" class="navbar-brand"><div class="logo">📖</div><span>VOCABO</span></a>
+    <div class="navbar-nav">
+      <a href="flashcard.html" class="nav-link"><span>📚</span><span>Học</span></a>
+      <a href="review.html"    class="nav-link"><span>🔁</span><span>Ôn tập</span></a>
+      <a href="test.html"      class="nav-link"><span>📝</span><span>Kiểm tra</span></a>
+      <a href="calendar.html"  class="nav-link"><span>📅</span><span>Lịch</span></a>
+    </div>
+    <div class="nav-user" id="nav-user"></div>
+  </nav>
+  <div class="layout">
+    <aside class="sidebar">
+      <a href="dashboard.html" class="sidebar-item"><span>🏠</span> Trang chủ</a>
+      <a href="flashcard.html" class="sidebar-item"><span>📚</span> Học từ vựng</a>
+      <a href="review.html"    class="sidebar-item"><span>🔁</span> Ôn tập</a>
+      <a href="test.html"      class="sidebar-item"><span>📝</span> Kiểm tra</a>
+      <a href="grammar.html"   class="sidebar-item"><span>📖</span> Ngữ pháp</a>
+      <a href="calendar.html"  class="sidebar-item"><span>📅</span> Lịch học</a>
+      <a href="search.html"    class="sidebar-item"><span>🔍</span> Tra từ</a>
+      <a href="profile.html"   class="sidebar-item active"><span>👤</span> Hồ sơ</a>
+    </aside>
+    <main class="main-content">
+      <div style="max-width:640px;margin:0 auto">
+        <!-- Hero -->
+        <div class="profile-hero">
+          <div class="profile-avatar" id="profile-avatar">?</div>
+          <h2 id="profile-name">...</h2>
+          <p style="opacity:.8;font-size:14px" id="profile-email"></p>
+          <div style="display:flex;gap:16px;justify-content:center;margin-top:16px">
+            <div><div style="font-size:22px;font-weight:800" id="ph-words">0</div><div style="font-size:12px;opacity:.7">Từ đã học</div></div>
+            <div><div style="font-size:22px;font-weight:800" id="ph-streak">0</div><div style="font-size:12px;opacity:.7">Streak</div></div>
+            <div><div style="font-size:22px;font-weight:800" id="ph-tests">0</div><div style="font-size:12px;opacity:.7">Bài test</div></div>
+          </div>
+        </div>
+
+        <!-- Edit profile -->
+        <div class="card mb-16">
+          <h3 class="mb-16">✏️ Thông tin cá nhân</h3>
+          <div class="form-group">
+            <label class="form-label">Tên hiển thị</label>
+            <input type="text" id="edit-name" class="form-control" placeholder="Tên của bạn">
+          </div>
+          <button class="btn btn-primary" onclick="saveName()">Lưu tên</button>
+        </div>
+
+        <!-- Level -->
+        <div class="card mb-16">
+          <h3 class="mb-16">🎯 Cấp độ tiếng Anh</h3>
+          <div class="level-select" id="level-select">
+            <div class="level-opt" data-level="A1" onclick="selectLevel('A1')">A1 — Mới bắt đầu</div>
+            <div class="level-opt" data-level="A2" onclick="selectLevel('A2')">A2 — Sơ cấp</div>
+            <div class="level-opt" data-level="B1" onclick="selectLevel('B1')">B1 — Trung cấp</div>
+            <div class="level-opt" data-level="B2" onclick="selectLevel('B2')">B2 — Trên trung cấp</div>
+            <div class="level-opt" data-level="C1" onclick="selectLevel('C1')">C1 — Nâng cao</div>
+            <div class="level-opt" data-level="C2" onclick="selectLevel('C2')">C2 — Thành thạo</div>
+          </div>
+          <button class="btn btn-primary mt-16" onclick="saveLevel()">Lưu cấp độ</button>
+        </div>
+
+        <!-- Daily goal -->
+        <div class="card mb-16">
+          <h3 class="mb-16">📅 Mục tiêu hàng ngày</h3>
+          <div style="display:flex;gap:8px;flex-wrap:wrap" id="goal-select">
+            <div class="goal-opt" data-goal="5"  onclick="selectGoal(5)">5 từ/ngày</div>
+            <div class="goal-opt" data-goal="10" onclick="selectGoal(10)">10 từ/ngày</div>
+            <div class="goal-opt" data-goal="15" onclick="selectGoal(15)">15 từ/ngày</div>
+            <div class="goal-opt" data-goal="20" onclick="selectGoal(20)">20 từ/ngày</div>
+            <div class="goal-opt" data-goal="30" onclick="selectGoal(30)">30 từ/ngày</div>
+          </div>
+          <button class="btn btn-primary mt-16" onclick="saveGoal()">Lưu mục tiêu</button>
+        </div>
+
+        <!-- Change password (email only) -->
+        <div class="card mb-16" id="pw-card">
+          <h3 class="mb-16">🔑 Đổi mật khẩu</h3>
+          <p class="text-muted text-sm mb-16">Nhấn nút bên dưới để nhận email đặt lại mật khẩu</p>
+          <button class="btn btn-outline" onclick="sendReset()">Gửi email đặt lại mật khẩu</button>
+        </div>
+
+        <!-- Logout -->
+        <button class="btn btn-danger btn-block btn-lg" onclick="doLogout()">🚪 Đăng xuất</button>
+      </div>
+    </main>
+  </div>
+
+  <script type="module">
+    import { requireAuth, getUserData, logout } from "./js/auth.js";
+    import { auth, db } from "./js/firebase-config.js";
+    import { doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+    import { updateProfile, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+    import { renderNavUser, showToast } from "./js/utils.js";
+
+    const user = await requireAuth();
+    let userData = await getUserData(user.uid);
+    renderNavUser(user, userData);
+
+    let selectedLevel = userData?.level || "A1";
+    let selectedGoal  = userData?.dailyGoal || 10;
+
+    // Fill profile
+    const name  = userData?.displayName || user.displayName || "";
+    const photo = userData?.photoURL || user.photoURL || "";
+    document.getElementById("profile-name").textContent  = name || "Chưa đặt tên";
+    document.getElementById("profile-email").textContent = user.email || "";
+    document.getElementById("edit-name").value           = name;
+    document.getElementById("ph-words").textContent  = userData?.wordsLearned || 0;
+    document.getElementById("ph-streak").textContent = userData?.streak || 0;
+    document.getElementById("ph-tests").textContent  = userData?.totalTests || 0;
+
+    const avatarEl = document.getElementById("profile-avatar");
+    if (photo) avatarEl.innerHTML = `<img src="${photo}" alt="">`;
+    else avatarEl.textContent = name.charAt(0).toUpperCase() || "?";
+
+    // Level
+    document.querySelectorAll(".level-opt").forEach(el => {
+      if (el.dataset.level === selectedLevel) el.classList.add("selected");
+    });
+    window.selectLevel = (l) => {
+      selectedLevel = l;
+      document.querySelectorAll(".level-opt").forEach(el => {
+        el.classList.toggle("selected", el.dataset.level === l);
+      });
+    };
+
+    // Goal
+    document.querySelectorAll(".goal-opt").forEach(el => {
+      if (parseInt(el.dataset.goal) === selectedGoal) el.classList.add("selected");
+    });
+    window.selectGoal = (g) => {
+      selectedGoal = g;
+      document.querySelectorAll(".goal-opt").forEach(el => {
+        el.classList.toggle("selected", parseInt(el.dataset.goal) === g);
+      });
+    };
+
+    // Hide pw card for Google users
+    const isGoogle = user.providerData.some(p => p.providerId === "google.com");
+    if (isGoogle) document.getElementById("pw-card").style.display = "none";
+
+    window.saveName = async () => {
+      const name = document.getElementById("edit-name").value.trim();
+      if (!name) return;
+      await updateProfile(auth.currentUser, { displayName: name });
+      await updateDoc(doc(db,"users",user.uid), { displayName: name });
+      document.getElementById("profile-name").textContent = name;
+      showToast("Đã lưu tên!", "success");
+    };
+
+    window.saveLevel = async () => {
+      await updateDoc(doc(db,"users",user.uid), { level: selectedLevel });
+      showToast(`Đã lưu cấp độ ${selectedLevel}!`, "success");
+    };
+
+    window.saveGoal = async () => {
+      await updateDoc(doc(db,"users",user.uid), { dailyGoal: selectedGoal });
+      showToast(`Mục tiêu ${selectedGoal} từ/ngày đã lưu!`, "success");
+    };
+
+    window.sendReset = async () => {
+      await sendPasswordResetEmail(auth, user.email);
+      showToast("Đã gửi email đặt lại mật khẩu!", "success");
+    };
+
+    window.doLogout = logout;
+  </script>
+</body>
+</html>

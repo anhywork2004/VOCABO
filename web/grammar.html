@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VOCABO — Ngữ pháp</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" href="favicon.png">
+  <style>
+    .grammar-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px,1fr)); gap: 16px; }
+    .grammar-card { background: var(--surface); border-radius: var(--radius); padding: 20px; cursor: pointer; transition: all .2s; box-shadow: var(--shadow); border-left: 4px solid var(--primary); }
+    .grammar-card:hover { transform: translateY(-3px); box-shadow: 0 12px 32px rgba(102,126,234,.2); }
+    .grammar-card.done { border-left-color: var(--success); }
+    .grammar-emoji { font-size: 2rem; margin-bottom: 8px; }
+    .grammar-title { font-size: 14px; font-weight: 700; }
+    .grammar-vi    { font-size: 12px; color: var(--text-muted); margin-top: 3px; }
+    .lesson-content { background: var(--surface); border-radius: var(--radius); padding: 28px; box-shadow: var(--shadow); max-width: 700px; }
+    .lesson-formula { background: var(--primary-light); border-radius: 12px; padding: 16px 20px; font-family: monospace; font-size: 15px; font-weight: 700; color: var(--primary); margin: 16px 0; }
+    .lesson-example { background: #f8fafc; border-radius: 10px; padding: 12px 16px; margin: 8px 0; border-left: 3px solid var(--primary); font-size: 14px; }
+    .cat-label { font-size: 11px; font-weight: 700; color: #bbb; letter-spacing: 1px; margin: 20px 0 10px; }
+  </style>
+</head>
+<body>
+  <nav class="navbar">
+    <a href="dashboard.html" class="navbar-brand"><div class="logo">📖</div><span>VOCABO</span></a>
+    <div class="navbar-nav">
+      <a href="flashcard.html" class="nav-link"><span>📚</span><span>Học</span></a>
+      <a href="review.html"    class="nav-link"><span>🔁</span><span>Ôn tập</span></a>
+      <a href="test.html"      class="nav-link"><span>📝</span><span>Kiểm tra</span></a>
+      <a href="calendar.html"  class="nav-link"><span>📅</span><span>Lịch</span></a>
+    </div>
+    <div class="nav-user" id="nav-user"></div>
+  </nav>
+  <div class="layout">
+    <aside class="sidebar">
+      <a href="dashboard.html" class="sidebar-item"><span>🏠</span> Trang chủ</a>
+      <a href="flashcard.html" class="sidebar-item"><span>📚</span> Học từ vựng</a>
+      <a href="review.html"    class="sidebar-item"><span>🔁</span> Ôn tập</a>
+      <a href="test.html"      class="sidebar-item"><span>📝</span> Kiểm tra</a>
+      <a href="grammar.html"   class="sidebar-item active"><span>📖</span> Ngữ pháp</a>
+      <a href="calendar.html"  class="sidebar-item"><span>📅</span> Lịch học</a>
+      <a href="search.html"    class="sidebar-item"><span>🔍</span> Tra từ</a>
+    </aside>
+    <main class="main-content">
+      <!-- List view -->
+      <div id="list-view">
+        <h2 class="mb-8">📖 Ngữ pháp tiếng Anh</h2>
+        <p class="text-muted text-sm mb-24">26 bài học ngữ pháp từ cơ bản đến nâng cao</p>
+        <div id="grammar-list"></div>
+      </div>
+      <!-- Lesson view -->
+      <div id="lesson-view" class="hidden">
+        <div class="flex items-center gap-12 mb-24">
+          <button class="btn btn-outline btn-sm" onclick="backToList()">← Quay lại</button>
+          <h2 id="lesson-title">Bài học</h2>
+        </div>
+        <div class="lesson-content" id="lesson-content"></div>
+      </div>
+    </main>
+  </div>
+
+  <script type="module">
+    import { requireAuth, getUserData } from "./js/auth.js";
+    import { db } from "./js/firebase-config.js";
+    import { doc, updateDoc, arrayUnion, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+    import { renderNavUser, showToast } from "./js/utils.js";
+
+    const user = await requireAuth();
+    const userData = await getUserData(user.uid);
+    renderNavUser(user, userData);
+
+    const GRAMMAR = {
+      "Thì (Tenses)": [
+        { id:"ps",  emoji:"📘", title:"Present Simple",             vi:"Hiện tại đơn",
+          formula:"S + V(s/es)", use:"Thói quen, sự thật hiển nhiên",
+          examples:["She works every day.","The sun rises in the east.","I don't like coffee."] },
+        { id:"pc",  emoji:"⏳", title:"Present Continuous",         vi:"Hiện tại tiếp diễn",
+          formula:"S + am/is/are + V-ing", use:"Đang xảy ra tại thời điểm nói",
+          examples:["She is working now.","They are playing football.","I am not sleeping."] },
+        { id:"pp",  emoji:"✅", title:"Present Perfect",            vi:"Hiện tại hoàn thành",
+          formula:"S + have/has + V3", use:"Kinh nghiệm, kết quả",
+          examples:["I have visited Paris.","She has finished her homework.","Have you eaten yet?"] },
+        { id:"ppc", emoji:"🔄", title:"Present Perfect Continuous", vi:"HTHT tiếp diễn",
+          formula:"S + have/has been + V-ing", use:"Hành động bắt đầu trong quá khứ, còn tiếp diễn",
+          examples:["I have been studying for 3 hours.","She has been working here since 2020."] },
+        { id:"pas", emoji:"📕", title:"Past Simple",                vi:"Quá khứ đơn",
+          formula:"S + V2/ed", use:"Hành động đã hoàn thành trong quá khứ",
+          examples:["She worked yesterday.","I went to school.","Did you see the movie?"] },
+        { id:"pac", emoji:"🎞️", title:"Past Continuous",            vi:"Quá khứ tiếp diễn",
+          formula:"S + was/were + V-ing", use:"Đang xảy ra tại một thời điểm trong quá khứ",
+          examples:["She was working at 8pm.","They were playing when I arrived."] },
+        { id:"pap", emoji:"⏮️", title:"Past Perfect",               vi:"Quá khứ hoàn thành",
+          formula:"S + had + V3", use:"Xảy ra trước một hành động khác trong quá khứ",
+          examples:["She had left before I arrived.","I had eaten when he called."] },
+        { id:"fs",  emoji:"🔮", title:"Future Simple",              vi:"Tương lai đơn",
+          formula:"S + will + V", use:"Dự đoán, quyết định tức thì",
+          examples:["I will call you tomorrow.","She will help you.","It will rain tonight."] },
+        { id:"fbe", emoji:"📆", title:"Future (be going to)",       vi:"Tương lai gần",
+          formula:"S + am/is/are going to + V", use:"Kế hoạch đã định, dự đoán có bằng chứng",
+          examples:["I am going to study tonight.","Look at those clouds — it's going to rain."] },
+        { id:"fc",  emoji:"⏩", title:"Future Continuous",          vi:"Tương lai tiếp diễn",
+          formula:"S + will be + V-ing", use:"Đang xảy ra tại một thời điểm trong tương lai",
+          examples:["I will be working at 8pm tomorrow.","She will be sleeping when you arrive."] },
+        { id:"fp",  emoji:"🏁", title:"Future Perfect",             vi:"Tương lai hoàn thành",
+          formula:"S + will have + V3", use:"Hoàn thành trước một thời điểm trong tương lai",
+          examples:["I will have finished by 5pm.","She will have left before you arrive."] },
+        { id:"fpc", emoji:"🔁", title:"Future Perfect Continuous",  vi:"TLHT tiếp diễn",
+          formula:"S + will have been + V-ing", use:"Kéo dài đến một thời điểm trong tương lai",
+          examples:["By 2025, I will have been working here for 10 years."] },
+      ],
+      "Câu điều kiện (Conditionals)": [
+        { id:"c0", emoji:"0️⃣", title:"Zero Conditional",  vi:"Điều kiện loại 0",
+          formula:"If + S + V(s/es), S + V(s/es)", use:"Sự thật hiển nhiên, quy luật tự nhiên",
+          examples:["If you heat water to 100°C, it boils.","If it rains, the ground gets wet."] },
+        { id:"c1", emoji:"1️⃣", title:"First Conditional", vi:"Điều kiện loại 1",
+          formula:"If + S + V(s/es), S + will + V", use:"Điều kiện có thể xảy ra trong tương lai",
+          examples:["If it rains, I will stay home.","If you study hard, you will pass."] },
+        { id:"c2", emoji:"2️⃣", title:"Second Conditional",vi:"Điều kiện loại 2",
+          formula:"If + S + V2/ed, S + would + V", use:"Điều kiện không có thật ở hiện tại",
+          examples:["If I were rich, I would travel the world.","If she knew, she would tell you."] },
+        { id:"c3", emoji:"3️⃣", title:"Third Conditional", vi:"Điều kiện loại 3",
+          formula:"If + S + had + V3, S + would have + V3", use:"Điều kiện không có thật trong quá khứ",
+          examples:["If I had studied, I would have passed.","If she had come, we would have met."] },
+      ],
+      "Ngữ pháp khác": [
+        { id:"pass",  emoji:"🔄", title:"Passive Voice",      vi:"Câu bị động",
+          formula:"S + be + V3 (+ by O)", use:"Nhấn mạnh đối tượng chịu tác động",
+          examples:["The book was written by her.","English is spoken worldwide.","The cake was eaten."] },
+        { id:"modal", emoji:"🎭", title:"Modal Verbs",        vi:"Động từ khuyết thiếu",
+          formula:"S + modal + V (bare infinitive)", use:"can, could, may, might, must, should, would",
+          examples:["You should study more.","She can speak French.","It might rain tomorrow."] },
+        { id:"rel",   emoji:"🔗", title:"Relative Clauses",   vi:"Mệnh đề quan hệ",
+          formula:"N + who/which/that/where + clause", use:"Bổ sung thông tin cho danh từ",
+          examples:["The man who called is my uncle.","The book that I read was great."] },
+        { id:"rep",   emoji:"💬", title:"Reported Speech",    vi:"Câu tường thuật",
+          formula:"S + said (that) + clause (backshift)", use:"Thuật lại lời nói của người khác",
+          examples:["She said she was tired.","He told me he had finished."] },
+        { id:"ger",   emoji:"🏃", title:"Gerunds & Infinitives",vi:"Danh động từ & Động từ nguyên mẫu",
+          formula:"V-ing / to + V", use:"Làm chủ ngữ, tân ngữ hoặc sau một số động từ",
+          examples:["Swimming is fun.","I want to learn English.","She enjoys reading."] },
+        { id:"art",   emoji:"📌", title:"Articles",            vi:"Mạo từ",
+          formula:"a / an / the / (no article)", use:"Xác định danh từ",
+          examples:["I saw a dog.","The dog was big.","I love music (no article)."] },
+        { id:"comp",  emoji:"📊", title:"Comparatives",        vi:"So sánh",
+          formula:"adj-er than / more adj than / as adj as", use:"So sánh hai đối tượng",
+          examples:["She is taller than me.","This is more expensive than that.","He is as tall as his brother."] },
+        { id:"super", emoji:"🏆", title:"Superlatives",        vi:"So sánh nhất",
+          formula:"the adj-est / the most adj", use:"So sánh trong nhóm",
+          examples:["She is the tallest in class.","This is the most beautiful city."] },
+        { id:"quest", emoji:"❓", title:"Question Tags",       vi:"Câu hỏi đuôi",
+          formula:"S + V, aux + S?", use:"Xác nhận thông tin",
+          examples:["You are tired, aren't you?","She can swim, can't she?","It's cold, isn't it?"] },
+        { id:"wish",  emoji:"🌟", title:"Wish / If only",      vi:"Câu ước",
+          formula:"S + wish + S + V2/ed (present) / had V3 (past)", use:"Ước điều không có thật",
+          examples:["I wish I were taller.","She wishes she had studied harder.","If only I knew the answer."] },
+      ]
+    };
+
+    let doneSet = new Set(userData?.grammarDone || []);
+
+    // Render list
+    const listEl = document.getElementById("grammar-list");
+    Object.entries(GRAMMAR).forEach(([cat, lessons]) => {
+      listEl.innerHTML += `<div class="cat-label">${cat.toUpperCase()}</div>`;
+      const grid = document.createElement("div");
+      grid.className = "grammar-grid";
+      lessons.forEach(l => {
+        const done = doneSet.has(l.id);
+        const card = document.createElement("div");
+        card.className = `grammar-card ${done?"done":""}`;
+        card.innerHTML = `
+          <div class="grammar-emoji">${l.emoji}</div>
+          <div class="grammar-title">${l.title} ${done?"✅":""}</div>
+          <div class="grammar-vi">${l.vi}</div>`;
+        card.onclick = () => openLesson(l);
+        grid.appendChild(card);
+      });
+      listEl.appendChild(grid);
+    });
+
+    function openLesson(l) {
+      document.getElementById("list-view").classList.add("hidden");
+      document.getElementById("lesson-view").classList.remove("hidden");
+      document.getElementById("lesson-title").textContent = `${l.emoji} ${l.title}`;
+
+      const examples = l.examples.map(e =>
+        `<div class="lesson-example">💬 ${e}</div>`).join("");
+
+      document.getElementById("lesson-content").innerHTML = `
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
+          <span style="font-size:2.5rem">${l.emoji}</span>
+          <div>
+            <h2>${l.title}</h2>
+            <p class="text-muted text-sm">${l.vi}</p>
+          </div>
+        </div>
+        <div class="mb-16">
+          <div class="form-label">Cấu trúc</div>
+          <div class="lesson-formula">${l.formula}</div>
+        </div>
+        <div class="mb-16">
+          <div class="form-label">Cách dùng</div>
+          <p style="font-size:14px">${l.use}</p>
+        </div>
+        <div class="mb-24">
+          <div class="form-label">Ví dụ</div>
+          ${examples}
+        </div>
+        <button class="btn btn-primary" onclick="markDone('${l.id}')">
+          ${doneSet.has(l.id) ? "✅ Đã học" : "✓ Đánh dấu đã học"}
+        </button>`;
+    }
+
+    window.markDone = async (id) => {
+      doneSet.add(id);
+      await updateDoc(doc(db,"users",user.uid), { grammarDone: [...doneSet] });
+      showToast("Đã đánh dấu hoàn thành!", "success");
+      // Update button
+      document.querySelector(`[onclick="markDone('${id}')"]`).textContent = "✅ Đã học";
+    };
+
+    window.backToList = () => {
+      document.getElementById("lesson-view").classList.add("hidden");
+      document.getElementById("list-view").classList.remove("hidden");
+    };
+  </script>
+</body>
+</html>

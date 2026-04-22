@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VOCABO — Lịch học</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" href="favicon.png">
+  <style>
+    .cal-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
+    .cal-nav { display:flex; gap:8px; align-items:center; }
+    .cal-nav button { background:var(--primary-light); border:none; border-radius:8px; padding:6px 12px; cursor:pointer; color:var(--primary); font-weight:700; }
+    .cal-month { font-size:18px; font-weight:700; }
+    .cal-weekdays { display:grid; grid-template-columns:repeat(7,1fr); gap:4px; margin-bottom:8px; }
+    .cal-weekday { text-align:center; font-size:12px; font-weight:700; color:var(--text-muted); padding:8px 0; }
+    .event-item { display:flex; gap:12px; padding:14px; background:var(--surface); border-radius:12px; box-shadow:var(--shadow); margin-bottom:10px; align-items:flex-start; }
+    .event-icon { width:40px; height:40px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0; }
+    .event-time { font-size:12px; color:var(--text-muted); margin-top:3px; }
+    .event-actions { margin-left:auto; display:flex; gap:6px; }
+    .completed-line { text-decoration:line-through; opacity:.5; }
+    .add-event-form { background:var(--primary-light); border-radius:var(--radius); padding:20px; margin-bottom:20px; }
+  </style>
+</head>
+<body>
+  <nav class="navbar">
+    <a href="dashboard.html" class="navbar-brand"><div class="logo">📖</div><span>VOCABO</span></a>
+    <div class="navbar-nav">
+      <a href="flashcard.html" class="nav-link"><span>📚</span><span>Học</span></a>
+      <a href="review.html"    class="nav-link"><span>🔁</span><span>Ôn tập</span></a>
+      <a href="test.html"      class="nav-link"><span>📝</span><span>Kiểm tra</span></a>
+      <a href="calendar.html"  class="nav-link active"><span>📅</span><span>Lịch</span></a>
+    </div>
+    <div class="nav-user" id="nav-user"></div>
+  </nav>
+  <div class="layout">
+    <aside class="sidebar">
+      <a href="dashboard.html" class="sidebar-item"><span>🏠</span> Trang chủ</a>
+      <a href="flashcard.html" class="sidebar-item"><span>📚</span> Học từ vựng</a>
+      <a href="review.html"    class="sidebar-item"><span>🔁</span> Ôn tập</a>
+      <a href="test.html"      class="sidebar-item"><span>📝</span> Kiểm tra</a>
+      <a href="grammar.html"   class="sidebar-item"><span>📖</span> Ngữ pháp</a>
+      <a href="calendar.html"  class="sidebar-item active"><span>📅</span> Lịch học</a>
+      <a href="search.html"    class="sidebar-item"><span>🔍</span> Tra từ</a>
+    </aside>
+    <main class="main-content">
+      <div style="display:grid;grid-template-columns:1fr 340px;gap:24px" id="cal-layout">
+        <!-- Calendar -->
+        <div>
+          <div class="card">
+            <div class="cal-header">
+              <div class="cal-month" id="cal-month">Tháng 4, 2026</div>
+              <div class="cal-nav">
+                <button onclick="changeMonth(-1)">‹</button>
+                <button onclick="goToday()">Hôm nay</button>
+                <button onclick="changeMonth(1)">›</button>
+              </div>
+            </div>
+            <div class="cal-weekdays">
+              <div class="cal-weekday">CN</div>
+              <div class="cal-weekday">T2</div>
+              <div class="cal-weekday">T3</div>
+              <div class="cal-weekday">T4</div>
+              <div class="cal-weekday">T5</div>
+              <div class="cal-weekday">T6</div>
+              <div class="cal-weekday">T7</div>
+            </div>
+            <div class="calendar-grid" id="cal-grid"></div>
+          </div>
+
+          <!-- Add event form -->
+          <div class="add-event-form mt-16">
+            <h3 class="mb-16">➕ Thêm sự kiện</h3>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+              <input type="text" id="ev-title" class="form-control" placeholder="Tiêu đề sự kiện *">
+              <input type="time" id="ev-time"  class="form-control" value="08:00">
+            </div>
+            <input type="text" id="ev-desc" class="form-control mb-12" placeholder="Mô tả (tuỳ chọn)">
+            <div style="display:flex;align-items:center;gap:12px">
+              <span class="text-sm text-muted">Ngày: <strong id="selected-date-label">Hôm nay</strong></span>
+              <button class="btn btn-primary" onclick="addEvent()">Thêm sự kiện</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Events panel -->
+        <div>
+          <div class="flex justify-between items-center mb-16">
+            <h3 id="events-title">Sự kiện hôm nay</h3>
+          </div>
+          <div id="events-list">
+            <div class="text-muted text-sm text-center" style="padding:40px">Chọn ngày để xem sự kiện</div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script type="module">
+    import { requireAuth, getUserData } from "./js/auth.js";
+    import { db } from "./js/firebase-config.js";
+    import {
+      collection, query, where, getDocs, addDoc, doc,
+      updateDoc, deleteDoc, serverTimestamp, Timestamp, onSnapshot
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+    import { renderNavUser, showToast, formatDate } from "./js/utils.js";
+
+    const user = await requireAuth();
+    const userData = await getUserData(user.uid);
+    renderNavUser(user, userData);
+
+    let currentDate = new Date();
+    let selectedDate = new Date();
+    let allEvents = {};
+
+    // ── Load events realtime ───────────────────────────────────────────────────
+    onSnapshot(
+      query(collection(db,"events"), where("uid","==",user.uid)),
+      (snap) => {
+        allEvents = {};
+        snap.forEach(d => {
+          const ev   = d.data();
+          const date = ev.date?.toDate();
+          if (!date) return;
+          const key  = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+          if (!allEvents[key]) allEvents[key] = [];
+          allEvents[key].push({ id: d.id, ...ev });
+        });
+        renderCalendar();
+        renderEvents(selectedDate);
+      }
+    );
+
+    // ── Calendar render ────────────────────────────────────────────────────────
+    function renderCalendar() {
+      const year  = currentDate.getFullYear();
+      const month = currentDate.getMonth();
+      const months = ["Tháng 1","Tháng 2","Tháng 3","Tháng 4","Tháng 5","Tháng 6",
+                      "Tháng 7","Tháng 8","Tháng 9","Tháng 10","Tháng 11","Tháng 12"];
+      document.getElementById("cal-month").textContent = `${months[month]}, ${year}`;
+
+      const firstDay = new Date(year, month, 1).getDay();
+      const daysInMonth = new Date(year, month+1, 0).getDate();
+      const today = new Date();
+
+      const grid = document.getElementById("cal-grid");
+      grid.innerHTML = "";
+
+      // Empty cells
+      for (let i = 0; i < firstDay; i++) {
+        const cell = document.createElement("div");
+        cell.className = "cal-day other-month";
+        grid.appendChild(cell);
+      }
+
+      for (let d = 1; d <= daysInMonth; d++) {
+        const cell = document.createElement("div");
+        const key  = `${year}-${month}-${d}`;
+        const isToday = today.getFullYear()===year && today.getMonth()===month && today.getDate()===d;
+        const isSel   = selectedDate.getFullYear()===year && selectedDate.getMonth()===month && selectedDate.getDate()===d;
+        const hasEv   = allEvents[key]?.length > 0;
+
+        cell.className = `cal-day ${isToday?"today":""} ${isSel&&!isToday?"selected":""} ${hasEv?"has-event":""}`;
+        cell.textContent = d;
+        cell.onclick = () => {
+          selectedDate = new Date(year, month, d);
+          renderCalendar();
+          renderEvents(selectedDate);
+          document.getElementById("selected-date-label").textContent =
+            selectedDate.toLocaleDateString("vi-VN");
+        };
+        grid.appendChild(cell);
+      }
+    }
+
+    // ── Events render ──────────────────────────────────────────────────────────
+    function renderEvents(date) {
+      const key    = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+      const events = allEvents[key] || [];
+      const title  = date.toLocaleDateString("vi-VN", { weekday:"long", day:"2-digit", month:"2-digit", year:"numeric" });
+      document.getElementById("events-title").textContent = title;
+
+      const list = document.getElementById("events-list");
+      if (!events.length) {
+        list.innerHTML = `<div class="text-muted text-sm text-center" style="padding:40px">
+          <div style="font-size:2.5rem;margin-bottom:8px">📭</div>
+          Không có sự kiện nào
+        </div>`;
+        return;
+      }
+
+      list.innerHTML = events.map(ev => {
+        const isAI = ev.source === "meow_ai";
+        const done = ev.completed === true;
+        return `
+          <div class="event-item">
+            <div class="event-icon" style="background:var(--primary-light)">
+              ${isAI ? "😺" : "📅"}
+            </div>
+            <div style="flex:1">
+              <div style="font-weight:600;font-size:14px" class="${done?"completed-line":""}">${ev.title||""}</div>
+              ${ev.time ? `<div class="event-time">🕐 ${ev.time}</div>` : ""}
+              ${ev.description ? `<div class="text-muted text-sm mt-8">${ev.description}</div>` : ""}
+              ${isAI ? `<span class="chip" style="margin-top:6px;font-size:11px">😺 Meow AI</span>` : ""}
+            </div>
+            <div class="event-actions">
+              <button class="btn btn-sm" style="background:${done?"#f0fdf4":"var(--primary-light)"};color:${done?"#059669":"var(--primary)"}"
+                onclick="toggleEvent('${ev.id}',${done})">
+                ${done ? "✓" : "○"}
+              </button>
+              <button class="btn btn-sm" style="background:#fef2f2;color:var(--danger)"
+                onclick="deleteEvent('${ev.id}')">🗑</button>
+            </div>
+          </div>`;
+      }).join("");
+    }
+
+    // ── Add event ──────────────────────────────────────────────────────────────
+    window.addEvent = async () => {
+      const title = document.getElementById("ev-title").value.trim();
+      const time  = document.getElementById("ev-time").value;
+      const desc  = document.getElementById("ev-desc").value.trim();
+      if (!title) { showToast("Nhập tiêu đề sự kiện!", "warning"); return; }
+
+      await addDoc(collection(db,"events"), {
+        uid: user.uid, title, time, description: desc,
+        date: Timestamp.fromDate(selectedDate),
+        completed: false, source: "manual",
+        createdAt: serverTimestamp()
+      });
+      document.getElementById("ev-title").value = "";
+      document.getElementById("ev-desc").value  = "";
+      showToast("Đã thêm sự kiện!", "success");
+    };
+
+    window.toggleEvent = async (id, current) => {
+      await updateDoc(doc(db,"events",id), { completed: !current });
+    };
+
+    window.deleteEvent = async (id) => {
+      await deleteDoc(doc(db,"events",id));
+      showToast("Đã xóa sự kiện", "info");
+    };
+
+    window.changeMonth = (dir) => {
+      currentDate = new Date(currentDate.getFullYear(), currentDate.getMonth()+dir, 1);
+      renderCalendar();
+    };
+
+    window.goToday = () => {
+      currentDate  = new Date();
+      selectedDate = new Date();
+      renderCalendar();
+      renderEvents(selectedDate);
+    };
+
+    // Init
+    document.getElementById("selected-date-label").textContent =
+      selectedDate.toLocaleDateString("vi-VN");
+    renderCalendar();
+    renderEvents(selectedDate);
+
+    // Responsive
+    if (window.innerWidth < 900) {
+      document.getElementById("cal-layout").style.gridTemplateColumns = "1fr";
+    }
+  </script>
+</body>
+</html>

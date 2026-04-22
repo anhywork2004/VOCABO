@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VOCABO — Dashboard</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" href="favicon.png">
+  <style>
+    .hero {
+      background: var(--gradient); border-radius: 20px;
+      padding: 28px 32px; color: #fff; margin-bottom: 24px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .hero-greeting { font-size: 13px; opacity: .8; margin-bottom: 4px; }
+    .hero-name { font-size: 24px; font-weight: 800; }
+    .hero-sub  { font-size: 14px; opacity: .75; margin-top: 4px; }
+    .hero-avatar {
+      width: 64px; height: 64px; border-radius: 50%;
+      border: 3px solid rgba(255,255,255,.4);
+      background: rgba(255,255,255,.2);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 28px; font-weight: 800; color: #fff; overflow: hidden;
+    }
+    .hero-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .menu-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+    .menu-item {
+      background: var(--surface); border-radius: var(--radius);
+      padding: 20px 16px; text-align: center; cursor: pointer;
+      transition: all .2s; text-decoration: none; color: var(--text);
+      box-shadow: var(--shadow);
+    }
+    .menu-item:hover { transform: translateY(-4px); box-shadow: 0 12px 32px rgba(102,126,234,.2); }
+    .menu-icon {
+      width: 52px; height: 52px; border-radius: 14px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 24px; margin: 0 auto 10px;
+    }
+    .menu-label { font-size: 13px; font-weight: 600; }
+    .section-title { font-size: 16px; font-weight: 700; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+    .level-path { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .level-node {
+      padding: 8px 16px; border-radius: 10px; font-size: 13px;
+      font-weight: 700; background: #f3f4f6; color: #9ca3af;
+      transition: all .2s;
+    }
+    .level-node.done    { background: rgba(6,214,160,.15); color: #059669; }
+    .level-node.current { background: var(--gradient); color: #fff; box-shadow: 0 4px 12px rgba(102,126,234,.4); }
+    .level-arrow { color: #d1d5db; font-size: 18px; }
+    .chart-bar-wrap { display: flex; align-items: flex-end; gap: 8px; height: 100px; }
+    .chart-bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+    .chart-bar {
+      width: 100%; border-radius: 6px 6px 0 0;
+      background: var(--gradient); min-height: 4px; transition: height .5s;
+    }
+    .chart-label { font-size: 11px; color: var(--text-muted); }
+    .notif-item {
+      display: flex; gap: 12px; padding: 12px 0;
+      border-bottom: 1px solid #f3f4f6;
+    }
+    .notif-icon {
+      width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center; font-size: 16px;
+    }
+    @media (max-width: 768px) {
+      .menu-grid { grid-template-columns: repeat(2, 1fr); }
+      .hero { flex-direction: column; gap: 16px; text-align: center; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Navbar -->
+  <nav class="navbar">
+    <a href="dashboard.html" class="navbar-brand">
+      <div class="logo">📖</div>
+      <span>VOCABO</span>
+    </a>
+    <div class="navbar-nav">
+      <a href="flashcard.html" class="nav-link"><span>📚</span><span>Học</span></a>
+      <a href="review.html"    class="nav-link"><span>🔁</span><span>Ôn tập</span></a>
+      <a href="test.html"      class="nav-link"><span>📝</span><span>Kiểm tra</span></a>
+      <a href="calendar.html"  class="nav-link"><span>📅</span><span>Lịch</span></a>
+    </div>
+    <div class="nav-user" id="nav-user" onclick="window.location.href='profile.html'"></div>
+    <button class="btn btn-outline btn-sm" onclick="doLogout()" style="margin-left:8px">Đăng xuất</button>
+  </nav>
+
+  <div class="layout">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-label">CHÍNH</div>
+      <a href="dashboard.html" class="sidebar-item active"><span>🏠</span> Trang chủ</a>
+      <a href="flashcard.html" class="sidebar-item"><span>📚</span> Học từ vựng</a>
+      <a href="review.html"    class="sidebar-item"><span>🔁</span> Ôn tập</a>
+      <a href="test.html"      class="sidebar-item"><span>📝</span> Kiểm tra</a>
+      <a href="grammar.html"   class="sidebar-item"><span>📖</span> Ngữ pháp</a>
+      <div class="sidebar-label">KHÁC</div>
+      <a href="calendar.html"  class="sidebar-item"><span>📅</span> Lịch học</a>
+      <a href="search.html"    class="sidebar-item"><span>🔍</span> Tra từ</a>
+      <a href="profile.html"   class="sidebar-item"><span>👤</span> Hồ sơ</a>
+    </aside>
+
+    <!-- Main -->
+    <main class="main-content">
+      <!-- Hero -->
+      <div class="hero">
+        <div>
+          <div class="hero-greeting">Chào mừng trở lại 👋</div>
+          <div class="hero-name" id="hero-name">...</div>
+          <div class="hero-sub" id="hero-sub">Hãy tiếp tục học hôm nay!</div>
+        </div>
+        <div class="hero-avatar" id="hero-avatar">?</div>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-grid mb-24" id="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon" style="background:#eef0ff">📚</div>
+          <div class="stat-value" id="stat-words">0</div>
+          <div class="stat-label">Từ đã học</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon" style="background:#fff7ed">🔥</div>
+          <div class="stat-value" id="stat-streak">0</div>
+          <div class="stat-label">Streak ngày</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon" style="background:#f0fdf4">📊</div>
+          <div class="stat-value" id="stat-progress">0%</div>
+          <div class="stat-label">Tiến độ</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon" style="background:#fdf4ff">🎯</div>
+          <div class="stat-value" id="stat-score">0%</div>
+          <div class="stat-label">Điểm test</div>
+        </div>
+      </div>
+
+      <!-- Menu -->
+      <div class="section-title">⚡ Chức năng</div>
+      <div class="menu-grid mb-24">
+        <a href="flashcard.html" class="menu-item">
+          <div class="menu-icon" style="background:#eef0ff">📚</div>
+          <div class="menu-label">Học từ vựng</div>
+        </a>
+        <a href="review.html" class="menu-item">
+          <div class="menu-icon" style="background:#f0fdf4">🔁</div>
+          <div class="menu-label">Ôn tập</div>
+        </a>
+        <a href="test.html" class="menu-item">
+          <div class="menu-icon" style="background:#fff7ed">📝</div>
+          <div class="menu-label">Kiểm tra</div>
+        </a>
+        <a href="grammar.html" class="menu-item">
+          <div class="menu-icon" style="background:#fdf4ff">📖</div>
+          <div class="menu-label">Ngữ pháp</div>
+        </a>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px" id="bottom-grid">
+        <!-- Weekly chart -->
+        <div class="card">
+          <div class="section-title">📈 Hoạt động tuần</div>
+          <div class="chart-bar-wrap" id="weekly-chart"></div>
+        </div>
+
+        <!-- Learning path -->
+        <div class="card">
+          <div class="section-title">🗺️ Lộ trình học</div>
+          <div class="level-path" id="level-path"></div>
+          <div class="mt-16">
+            <div class="flex justify-between mb-8">
+              <span class="text-sm text-muted">Mục tiêu hôm nay</span>
+              <span class="text-sm font-bold" id="goal-text">0/10 từ</span>
+            </div>
+            <div class="progress"><div class="progress-bar" id="goal-bar" style="width:0%"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Notifications -->
+      <div class="card mt-24">
+        <div class="section-title">🔔 Thông báo mới nhất</div>
+        <div id="notif-list"><div class="text-muted text-sm text-center" style="padding:20px">Đang tải...</div></div>
+      </div>
+    </main>
+  </div>
+
+  <script type="module">
+    import { requireAuth, getUserData, logout } from "./js/auth.js";
+    import { db } from "./js/firebase-config.js";
+    import { collection, query, orderBy, limit, getDocs, onSnapshot, doc, where } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+    import { renderNavUser, showToast } from "./js/utils.js";
+
+    window.doLogout = logout;
+
+    const user     = await requireAuth();
+    const userData = await getUserData(user.uid);
+
+    // Nav user
+    renderNavUser(user, userData);
+
+    // Hero
+    const name = userData?.displayName || user.displayName || "Bạn";
+    document.getElementById("hero-name").textContent = name;
+    document.getElementById("hero-sub").textContent =
+      `Cấp độ ${userData?.level || "A1"} • Mục tiêu ${userData?.dailyGoal || 10} từ/ngày`;
+
+    const photo = userData?.photoURL || user.photoURL || "";
+    const avatarEl = document.getElementById("hero-avatar");
+    if (photo) avatarEl.innerHTML = `<img src="${photo}" alt="">`;
+    else avatarEl.textContent = name.charAt(0).toUpperCase();
+
+    // Stats
+    document.getElementById("stat-words").textContent   = userData?.wordsLearned || 0;
+    document.getElementById("stat-streak").textContent  = userData?.streak || 0;
+    document.getElementById("stat-progress").textContent = Math.round((userData?.progress || 0) * 100) + "%";
+    document.getElementById("stat-score").textContent   = (userData?.lastTestScore || 0) + "%";
+
+    // Level path
+    const levels  = ["A1","A2","B1","B2","C1","C2"];
+    const current = userData?.level || "A1";
+    const pathEl  = document.getElementById("level-path");
+    levels.forEach((l, i) => {
+      if (i > 0) pathEl.innerHTML += `<span class="level-arrow">→</span>`;
+      const idx = levels.indexOf(current);
+      const cls = i < idx ? "done" : i === idx ? "current" : "";
+      pathEl.innerHTML += `<span class="level-node ${cls}">${l}</span>`;
+    });
+
+    // Goal progress
+    const goal     = userData?.dailyGoal || 10;
+    const learned  = userData?.wordsLearned || 0;
+    const todayPct = Math.min(100, Math.round((learned % goal) / goal * 100));
+    document.getElementById("goal-text").textContent = `${learned % goal}/${goal} từ`;
+    document.getElementById("goal-bar").style.width  = todayPct + "%";
+
+    // Weekly chart
+    const days    = ["T2","T3","T4","T5","T6","T7","CN"];
+    const chartEl = document.getElementById("weekly-chart");
+    const snap    = await getDocs(query(collection(db, "study_sessions"),
+      where("uid", "==", user.uid)));
+    const weekData = new Array(7).fill(0);
+    snap.forEach(d => {
+      const date = d.data().date?.toDate();
+      if (date) weekData[date.getDay() === 0 ? 6 : date.getDay() - 1] += d.data().wordsLearned || 0;
+    });
+    const maxVal = Math.max(...weekData, 1);
+    days.forEach((day, i) => {
+      const h = Math.round((weekData[i] / maxVal) * 90);
+      chartEl.innerHTML += `
+        <div class="chart-bar-col">
+          <div class="chart-bar" style="height:${h}px" title="${weekData[i]} từ"></div>
+          <div class="chart-label">${day}</div>
+        </div>`;
+    });
+
+    // Notifications
+    const notifSnap = await getDocs(query(
+      collection(db, "notifications"),
+      orderBy("createdAt", "desc"), limit(5)));
+    const notifEl = document.getElementById("notif-list");
+    if (notifSnap.empty) {
+      notifEl.innerHTML = `<div class="text-muted text-sm text-center" style="padding:20px">Chưa có thông báo</div>`;
+    } else {
+      const typeMap = { info: ["📢","#eef0ff"], success: ["🎉","#f0fdf4"], warning: ["⚠️","#fff7ed"], error: ["🚨","#fef2f2"] };
+      notifEl.innerHTML = "";
+      notifSnap.forEach(d => {
+        const n = d.data();
+        const [icon, bg] = typeMap[n.type] || ["📢","#eef0ff"];
+        const date = n.createdAt?.toDate()?.toLocaleDateString("vi-VN") || "";
+        notifEl.innerHTML += `
+          <div class="notif-item">
+            <div class="notif-icon" style="background:${bg}">${icon}</div>
+            <div>
+              <div style="font-weight:600;font-size:14px">${n.title || ""}</div>
+              <div class="text-muted text-sm">${n.body || n.message || ""}</div>
+              <div style="font-size:11px;color:#bbb;margin-top:3px">${date}</div>
+            </div>
+          </div>`;
+      });
+    }
+
+    // Responsive bottom grid
+    if (window.innerWidth < 768) {
+      document.getElementById("bottom-grid").style.gridTemplateColumns = "1fr";
+    }
+  </script>
+</body>
+</html>

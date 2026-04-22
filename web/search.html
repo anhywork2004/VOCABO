@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VOCABO — Tra từ</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" href="favicon.png">
+  <style>
+    .search-hero { background: var(--gradient); border-radius: 20px; padding: 32px; color: #fff; margin-bottom: 24px; text-align: center; }
+    .search-bar { display: flex; gap: 8px; max-width: 600px; margin: 16px auto 0; }
+    .lang-toggle { display: flex; background: rgba(255,255,255,.2); border-radius: 10px; padding: 4px; gap: 4px; margin: 0 auto 16px; width: fit-content; }
+    .lang-btn { padding: 6px 16px; border: none; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 600; background: transparent; color: rgba(255,255,255,.8); transition: all .2s; }
+    .lang-btn.active { background: #fff; color: var(--primary); }
+    .result-header { background: var(--gradient); border-radius: 16px 16px 0 0; padding: 20px 24px; color: #fff; }
+    .result-body { background: var(--surface); border-radius: 0 0 16px 16px; padding: 20px 24px; box-shadow: var(--shadow); }
+    .pos-badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; background: var(--primary-light); color: var(--primary); font-style: italic; margin-bottom: 8px; }
+    .def-item { padding: 8px 0 8px 16px; border-left: 3px solid var(--primary-light); margin-bottom: 8px; }
+    .def-num { font-weight: 700; color: var(--primary); margin-right: 6px; }
+    .example-text { font-size: 13px; color: var(--text-muted); font-style: italic; margin-top: 4px; padding-left: 16px; }
+    .tag { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 500; margin: 3px; }
+  </style>
+</head>
+<body>
+  <nav class="navbar">
+    <a href="dashboard.html" class="navbar-brand"><div class="logo">📖</div><span>VOCABO</span></a>
+    <div class="navbar-nav">
+      <a href="flashcard.html" class="nav-link"><span>📚</span><span>Học</span></a>
+      <a href="review.html"    class="nav-link"><span>🔁</span><span>Ôn tập</span></a>
+      <a href="test.html"      class="nav-link"><span>📝</span><span>Kiểm tra</span></a>
+      <a href="calendar.html"  class="nav-link"><span>📅</span><span>Lịch</span></a>
+    </div>
+    <div class="nav-user" id="nav-user"></div>
+  </nav>
+  <div class="layout">
+    <aside class="sidebar">
+      <a href="dashboard.html" class="sidebar-item"><span>🏠</span> Trang chủ</a>
+      <a href="flashcard.html" class="sidebar-item"><span>📚</span> Học từ vựng</a>
+      <a href="review.html"    class="sidebar-item"><span>🔁</span> Ôn tập</a>
+      <a href="test.html"      class="sidebar-item"><span>📝</span> Kiểm tra</a>
+      <a href="grammar.html"   class="sidebar-item"><span>📖</span> Ngữ pháp</a>
+      <a href="calendar.html"  class="sidebar-item"><span>📅</span> Lịch học</a>
+      <a href="search.html"    class="sidebar-item active"><span>🔍</span> Tra từ</a>
+    </aside>
+    <main class="main-content">
+      <div class="search-hero">
+        <h2 class="mb-8">🔍 Tra từ điển</h2>
+        <p style="opacity:.8;font-size:14px">Oxford Dictionary + MyMemory Translation</p>
+        <div class="lang-toggle">
+          <button class="lang-btn active" id="btn-en" onclick="setLang('en')">🇬🇧 EN → VI</button>
+          <button class="lang-btn"        id="btn-vi" onclick="setLang('vi')">🇻🇳 VI → EN</button>
+        </div>
+        <div class="search-bar">
+          <input type="text" id="search-input" class="form-control" placeholder="Nhập từ tiếng Anh..." style="flex:1">
+          <button class="btn btn-primary" onclick="doSearch()">Tra từ</button>
+        </div>
+      </div>
+
+      <div id="result-area"></div>
+    </main>
+  </div>
+
+  <script type="module">
+    import { requireAuth, getUserData } from "./js/auth.js";
+    import { renderNavUser, showToast } from "./js/utils.js";
+
+    const user = await requireAuth();
+    const userData = await getUserData(user.uid);
+    renderNavUser(user, userData);
+
+    let langMode = "en"; // en = EN→VI, vi = VI→EN
+
+    window.setLang = (lang) => {
+      langMode = lang;
+      document.getElementById("btn-en").classList.toggle("active", lang==="en");
+      document.getElementById("btn-vi").classList.toggle("active", lang==="vi");
+      document.getElementById("search-input").placeholder =
+        lang==="en" ? "Nhập từ tiếng Anh..." : "Nhập từ tiếng Việt...";
+      document.getElementById("result-area").innerHTML = "";
+    };
+
+    window.doSearch = async () => {
+      const input = document.getElementById("search-input").value.trim();
+      if (!input) return;
+      const area = document.getElementById("result-area");
+      area.innerHTML = `<div class="text-center" style="padding:40px"><div class="spinner" style="margin:0 auto"></div><p class="text-muted mt-16">Đang tra từ...</p></div>`;
+
+      try {
+        let lookupWord = input.toLowerCase();
+        let originalQuery = input;
+
+        if (langMode === "vi") {
+          // Translate VI → EN first
+          const r = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(input)}&langpair=vi|en`);
+          const j = await r.json();
+          const t = j.responseData?.translatedText || "";
+          if (t && !t.toUpperCase().startsWith("MYMEMORY")) {
+            lookupWord = t.split(" ")[0].toLowerCase();
+          }
+        }
+
+        // Fetch dictionary
+        const [dictRes, transRes] = await Promise.all([
+          fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${lookupWord}`),
+          fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(lookupWord)}&langpair=en|vi`)
+        ]);
+
+        const dictData = dictRes.ok ? await dictRes.json() : null;
+        const transData = await transRes.json();
+        const translation = transData.responseData?.translatedText || "";
+
+        if (!dictData || !Array.isArray(dictData)) {
+          area.innerHTML = `<div class="card text-center" style="padding:40px">
+            <div style="font-size:3rem;margin-bottom:12px">🔍</div>
+            <h3>Không tìm thấy "${input}"</h3>
+            <p class="text-muted text-sm mt-8">Thử kiểm tra lại chính tả hoặc đổi ngôn ngữ</p>
+          </div>`;
+          return;
+        }
+
+        const entry    = dictData[0];
+        const word     = entry.word || lookupWord;
+        let phonetic   = entry.phonetic || "";
+        if (!phonetic && entry.phonetics) {
+          phonetic = entry.phonetics.find(p => p.text)?.text || "";
+        }
+        const meanings = entry.meanings || [];
+
+        // Collect synonyms & antonyms
+        const synonyms = new Set(), antonyms = new Set();
+        meanings.forEach(m => {
+          (m.synonyms||[]).slice(0,4).forEach(s => synonyms.add(s));
+          (m.antonyms||[]).slice(0,4).forEach(a => antonyms.add(a));
+          (m.definitions||[]).forEach(d => {
+            (d.synonyms||[]).slice(0,2).forEach(s => synonyms.add(s));
+            (d.antonyms||[]).slice(0,2).forEach(a => antonyms.add(a));
+          });
+        });
+
+        let html = `
+          <div class="result-header">
+            ${langMode==="vi" ? `<div style="font-size:12px;opacity:.7;margin-bottom:6px">🔍 Kết quả cho "${originalQuery}"</div>` : ""}
+            <div style="display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap">
+              <span style="font-size:2rem;font-weight:800">${word}</span>
+              ${phonetic ? `<span style="opacity:.75;font-style:italic">${phonetic}</span>` : ""}
+              <button onclick="speak('${word}')" style="background:rgba(255,255,255,.2);border:none;border-radius:8px;padding:6px 12px;color:#fff;cursor:pointer;font-size:13px">🔊 Phát âm</button>
+            </div>
+            ${translation ? `<div style="margin-top:10px;background:rgba(255,255,255,.2);border-radius:10px;padding:8px 14px;font-size:14px;font-weight:500">🇻🇳 ${translation}</div>` : ""}
+            <div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap">
+              <span style="background:rgba(255,255,255,.2);border-radius:8px;padding:3px 10px;font-size:11px">Oxford Dictionary</span>
+              <span style="background:rgba(255,255,255,.2);border-radius:8px;padding:3px 10px;font-size:11px">MyMemory</span>
+            </div>
+          </div>
+          <div class="result-body">`;
+
+        meanings.slice(0,3).forEach(m => {
+          html += `<div class="mb-16">
+            <div class="pos-badge">${m.partOfSpeech||""}</div>`;
+          (m.definitions||[]).slice(0,2).forEach((d,i) => {
+            html += `<div class="def-item">
+              <span class="def-num">${i+1}.</span>${d.definition||""}
+              ${d.example ? `<div class="example-text">"${d.example}"</div>` : ""}
+            </div>`;
+          });
+          html += `</div>`;
+        });
+
+        if (synonyms.size) {
+          html += `<div class="mb-12"><strong style="font-size:13px;color:var(--text-muted)">Synonyms: </strong>`;
+          [...synonyms].slice(0,6).forEach(s => {
+            html += `<span class="tag" style="background:#f0fdf4;color:#059669">${s}</span>`;
+          });
+          html += `</div>`;
+        }
+        if (antonyms.size) {
+          html += `<div><strong style="font-size:13px;color:var(--text-muted)">Antonyms: </strong>`;
+          [...antonyms].slice(0,6).forEach(a => {
+            html += `<span class="tag" style="background:#fef2f2;color:var(--danger)">${a}</span>`;
+          });
+          html += `</div>`;
+        }
+
+        html += `</div>`;
+        area.innerHTML = html;
+
+      } catch (e) {
+        area.innerHTML = `<div class="card text-center" style="padding:40px">
+          <div style="font-size:3rem;margin-bottom:12px">⚠️</div>
+          <h3>Lỗi kết nối</h3>
+          <p class="text-muted text-sm mt-8">Kiểm tra internet và thử lại</p>
+        </div>`;
+      }
+    };
+
+    window.speak = (word) => {
+      if (window.speechSynthesis) {
+        const utt = new SpeechSynthesisUtterance(word);
+        utt.lang = "en-US"; utt.rate = 0.8;
+        speechSynthesis.speak(utt);
+      }
+    };
+
+    // Enter key
+    document.getElementById("search-input").addEventListener("keydown", e => {
+      if (e.key === "Enter") doSearch();
+    });
+  </script>
+</body>
+</html>
