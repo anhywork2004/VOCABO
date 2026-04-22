@@ -217,11 +217,11 @@ python -m http.server 8000
 
 ## 👥 Nhóm thực hiện
 
-| Thành viên | MSSV | Lớp |
-|------------|------|-----|
+| Thành viên          | MSSV | Lớp |
+|---------------------|------|-----|
 | Phạm Nguyễn Anh Huy | 2224802010738 | D22CNTT02 |
-| Dương Hoàn Phúc | 2224802010608 | D22CNTT02 |
-| Phùng Khắc Bin | 2224802010938 | D22CNTT06 |
+| Dương Hoàng Phúc    | 2224802010608 | D22CNTT02 |
+
 
 **Giảng viên hướng dẫn:** TS. Huỳnh Nguyễn Thành Luân
 
